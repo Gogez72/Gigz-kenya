@@ -2,13 +2,11 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const pg = require('pg');
+const { pool } = require('./config/database');
+const errorHandler = require('./middleware/errorHandler');
 
-// Import routes (to be created)
-// const authRoutes = require('./routes/auth');
-// const gigRoutes = require('./routes/gigs');
-// const workerRoutes = require('./routes/workers');
-// const paymentRoutes = require('./routes/payments');
+// Import routes
+const authRoutes = require('./routes/auth.routes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,42 +16,26 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Database connection pool
-const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-});
-
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'GigzKe API is running ✅' });
+  res.status(200).json({ status: 'GigzKe API is running ✅', timestamp: new Date() });
 });
 
-// Routes (to be implemented)
-// app.use('/api/auth', authRoutes);
-// app.use('/api/gigs', gigRoutes);
-// app.use('/api/workers', workerRoutes);
-// app.use('/api/payments', paymentRoutes);
+// API Routes
+app.use('/api/auth', authRoutes);
 
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Error handler
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal Server Error',
-  });
-});
+// Error handler (must be last)
+app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 GigzKe Backend running on http://localhost:${PORT}`);
+  console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
 });
 
 module.exports = { app, pool };
